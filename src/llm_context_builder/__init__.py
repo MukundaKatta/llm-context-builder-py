@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -12,7 +12,6 @@ class Section:
     content: str
     priority: int = 0
     enabled: bool = True
-    separator: str = "\n\n"
 
 
 class ContextBuilder:
@@ -44,7 +43,9 @@ class ContextBuilder:
         enabled: bool = True,
     ) -> "ContextBuilder":
         """Add or replace a named section."""
-        self._sections[name] = Section(name=name, content=content, priority=priority, enabled=enabled)
+        self._sections[name] = Section(
+            name=name, content=content, priority=priority, enabled=enabled
+        )
         return self
 
     def update(self, name: str, content: str) -> "ContextBuilder":
@@ -89,8 +90,10 @@ class ContextBuilder:
             if variables:
                 try:
                     content = content.format_map(variables)
-                except (KeyError, ValueError):
-                    pass
+                except (KeyError, IndexError, AttributeError, TypeError, ValueError):
+                    # Best-effort interpolation: leave content untouched on any
+                    # malformed/unsatisfiable placeholder rather than failing build().
+                    content = s.content
             parts.append(content.strip())
         return self._separator.join(parts)
 
@@ -99,15 +102,19 @@ class ContextBuilder:
         return {"role": "system", "content": self.build(variables)}
 
     def section_names(self) -> list[str]:
-        return [s.name for s in sorted(self._sections.values(), key=lambda s: -s.priority)]
+        return [
+            s.name for s in sorted(self._sections.values(), key=lambda s: -s.priority)
+        ]
 
     def clone(self) -> "ContextBuilder":
         """Return a deep copy of this builder."""
         new = ContextBuilder(self._separator)
         for name, sec in self._sections.items():
             new._sections[name] = Section(
-                name=sec.name, content=sec.content,
-                priority=sec.priority, enabled=sec.enabled,
+                name=sec.name,
+                content=sec.content,
+                priority=sec.priority,
+                enabled=sec.enabled,
             )
         return new
 

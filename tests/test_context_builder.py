@@ -1,5 +1,5 @@
 """Tests for llm-context-builder-py."""
-import pytest
+
 from llm_context_builder import ContextBuilder, Section
 
 
@@ -121,11 +121,9 @@ def test_clone_independence():
 
 def test_chaining():
     b = ContextBuilder()
-    result = (b
-              .add("a", "A", priority=10)
-              .add("b", "B", priority=5)
-              .disable("b")
-              .enable("b"))
+    result = (
+        b.add("a", "A", priority=10).add("b", "B", priority=5).disable("b").enable("b")
+    )
     assert result is b
     assert "A" in b.build()
     assert "B" in b.build()
@@ -140,3 +138,46 @@ def test_strip_whitespace_from_content():
     b = ContextBuilder()
     b.add("padded", "  Hello World  ", priority=10)
     assert b.build() == "Hello World"
+
+
+def test_section_dataclass_defaults():
+    s = Section(name="role", content="hi")
+    assert s.priority == 0
+    assert s.enabled is True
+
+
+def test_empty_variables_dict_is_noop():
+    b = ContextBuilder()
+    b.add("tmpl", "Hello {name}", priority=10)
+    # An empty dict must not attempt interpolation and must not crash.
+    assert b.build(variables={}) == "Hello {name}"
+
+
+def test_interpolation_index_error_passthrough():
+    b = ContextBuilder()
+    b.add("tmpl", "Item: {items[5]}", priority=10)
+    # Out-of-range index on a present key must not crash build().
+    assert b.build(variables={"items": [1, 2]}) == "Item: {items[5]}"
+
+
+def test_interpolation_attribute_error_passthrough():
+    b = ContextBuilder()
+    b.add("tmpl", "Name: {user.missing}", priority=10)
+    # Missing attribute on a present key must not crash build().
+    assert b.build(variables={"user": object()}) == "Name: {user.missing}"
+
+
+def test_interpolation_type_error_passthrough():
+    b = ContextBuilder()
+    b.add("tmpl", "Val: {n:d}", priority=10)
+    # Bad format spec for the supplied value must not crash build().
+    assert b.build(variables={"n": "not-an-int"}) == "Val: {n:d}"
+
+
+def test_one_bad_section_does_not_break_others():
+    b = ContextBuilder()
+    b.add("good", "Hello, {name}!", priority=20)
+    b.add("bad", "Broken: {missing[0]}", priority=10)
+    result = b.build(variables={"name": "Alice", "missing": []})
+    assert "Hello, Alice!" in result
+    assert "Broken: {missing[0]}" in result
