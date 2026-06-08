@@ -2,6 +2,8 @@
 
 Compose LLM system prompts from named, prioritized sections. Supports variable interpolation and enable/disable toggles.
 
+Zero runtime dependencies, fully type-hinted (ships a `py.typed` marker), and works on Python 3.9+.
+
 ## Install
 
 ```bash
@@ -40,13 +42,33 @@ variant.add("extra", "Be concise.", priority=5)
 
 ## API
 
-- `.add(name, content, priority, enabled)` — add or replace section
-- `.update(name, content)` — update content, keep priority/enabled
-- `.enable(name)` / `.disable(name)` / `.remove(name)`
-- `.build(variables)` — render sorted active sections
-- `.as_message(variables)` — `{"role":"system","content":"..."}`
-- `.clone()` — deep copy
-- `.section_names()` — names in priority order
+`ContextBuilder(separator="\n\n")` — sections are joined with `separator` when rendered.
+
+- `.add(name, content, priority=0, enabled=True)` — add or replace a section
+- `.update(name, content)` — update content, keeping the existing priority/enabled (adds the section if it does not exist)
+- `.enable(name)` / `.disable(name)` — toggle a section on/off (no-op if the name is unknown)
+- `.remove(name)` — drop a section (no-op if the name is unknown)
+- `.has(name)` — whether a section with that name exists
+- `.build(variables=None)` — render enabled sections in descending priority order, joined by the separator; if `variables` is given, each section is interpolated with `str.format_map`
+- `.as_message(variables=None)` — same as `.build()` but wrapped as `{"role": "system", "content": "..."}`
+- `.section_names()` — section names in priority order
+- `.clone()` — return an independent deep copy
+
+All mutating methods return `self`, so calls can be chained.
+
+### Notes on behavior
+
+- Sections render in **descending priority** (highest first). Sections with equal priority keep their insertion order.
+- Section content is `.strip()`ped before joining.
+- Interpolation is **best-effort**: if a section references a missing variable, a bad index/attribute, or an incompatible format spec, that section is rendered verbatim instead of raising — so one malformed section never breaks the whole prompt.
+
+## Development
+
+The test suite uses only the standard library (`unittest`), so no extra installs are needed:
+
+```bash
+python3 -m unittest discover -s tests
+```
 
 ## License
 
