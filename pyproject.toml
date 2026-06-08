@@ -12,13 +12,25 @@ requires-python = ">=3.9"
 keywords = ["llm", "agent", "prompt", "context", "ai"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
 ]
 
 [project.urls]
 Homepage = "https://github.com/MukundaKatta/llm-context-builder-py"
+Repository = "https://github.com/MukundaKatta/llm-context-builder-py"
+Issues = "https://github.com/MukundaKatta/llm-context-builder-py/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+llm_context_builder = ["py.typed"]
